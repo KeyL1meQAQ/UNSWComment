@@ -8,6 +8,7 @@ import com.keyl1me.entity.User;
 import com.keyl1me.mapper.UserMapper;
 import com.keyl1me.service.IUserService;
 import com.keyl1me.utils.RegexUtils;
+import com.keyl1me.utils.SystemConstants;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
@@ -54,15 +55,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Object cacheCode = session.getAttribute("code");
         String code = loginForm.getCode();
         if (cacheCode == null || !cacheCode.toString().equals(code)) {
+            // 不一致 报错
             return Result.fail("验证码错误");
         }
-        // 不一致 报错
 
         // 一致 从数据库里查询对应数据 判断用户是否存在
-
-        // 若不存在，则插入新数据
+        User user = query().eq("phone", phone).one();
+        if (user == null) {
+            // 若不存在，则插入新数据
+            user = createUserWithPhone(phone);
+        }
 
         // 若存在，则将用户信息保存到session
-        return null;
+        session.setAttribute("user", user);
+        return Result.ok();
+    }
+
+    private User createUserWithPhone(String phone) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setNickName(SystemConstants.USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
+        save(user);
+        return user;
     }
 }
